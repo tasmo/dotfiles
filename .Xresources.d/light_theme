@@ -1,0 +1,6 @@
+#define colorBG     #f8f8f2
+#define colorFG     #232629
+
+*.background:       colorBG
+*.accent:           #abb2bf
+*.foreground:       colorFG

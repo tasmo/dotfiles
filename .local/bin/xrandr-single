@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+CONNECTED="connected"
+if [ -f /sys/class/drm/card0/card0-HDMI-A-1/status ] ; then
+    HDMI_STATUS=$(cat /sys/class/drm/card0/card0-HDMI-A-1/status) ; else
+    HDMI_STATUS=0 ; fi
+if [ -f /sys/class/drm/card0/card0-VGA-1/status ] ; then
+    VGA_STATUS=$(cat /sys/class/drm/card0/card0-VGA-1/status) ; else
+    VGA_STATUS=0 ; fi
+if [ -f /sys/class/drm/card0/card0-eDP-1/status ] ; then
+    eDP_STATUS=$(cat /sys/class/drm/card0/card0-eDP-1/status) ; else
+    eDP_STATUS=0 ; fi
+
+refresh_wm() {
+    WM="$(wmctrl -m | awk '/Name/ {print $2};')"
+    if "$WM" == awesome; then
+        awesome-client 'awesome.restart()' > /dev/null
+    fi
+}
+
+WHICH_DISPLAY=$1
+case $WHICH_DISPLAY in
+    laptop)
+        if xrandr | grep eDP1 ; then
+            xrandr --output HDMI1 --off \
+                   --output VGA1 --off \
+                   --output eDP1 --mode 1920x1080 --primary \
+                   2> /dev/null
+            refresh_wm
+            notify-send -u low -t 500 "Graphics Update" "External monitor disconnected"
+        fi
+        ;;
+    hdmi)
+        if xrandr | grep HDMI ; then
+            xrandr --output HDMI1 --auto --primary \
+                   --output VGA1 --off \
+                   --output eDP1 --off \
+                   2> /dev/null
+            refresh_wm
+            notify-send -u low -t 500 "Graphics Update" "HDMI plugged in"
+        fi
+        ;;
+    vga)
+        if xrandr | grep VGA ; then
+            xrandr --output HDMI1 --off
+            xrandr --output VGA1 --auto --primary \
+                   --output eDB1 --off \
+                   2> /dev/null
+            refresh_wm
+            notify-send -u low -t 500 "Graphics Update" "VGA plugged in"
+        fi
+        ;;
+    *)
+        case $CONNECTED in
+            "$HDMI_STATUS")
+                xrandr --output HDMI1 --auto --primary \
+                       --output VGA1 --off \
+                       --output eDP1 --off \
+                       2> /dev/null
+                refresh_wm
+                notify-send -u low -t 500 "Graphics Update" "HDMI plugged in"
+                ;;
+            "$VGA_STATUS")
+                xrandr --output HDMI1 --off
+                xrandr --output VGA1 --auto --primary \
+                       --output eDB1 --off \
+                       2> /dev/null
+                refresh_wm
+                notify-send -u low -t 500 "Graphics Update" "VGA plugged in"
+                ;;
+            "$eDP_STATUS")
+                xrandr --output HDMI1 --off \
+                       --output VGA1 --off \
+                       --output eDP1 --mode 1920x1080 --primary \
+                       2> /dev/null
+                refresh_wm
+                notify-send -u low -t 500 "Graphics Update" "External monitor disconnected"
+                ;;
+            *)
+                xrandr --auto
+                refresh_wm
+        esac
+        ;;
+esac
